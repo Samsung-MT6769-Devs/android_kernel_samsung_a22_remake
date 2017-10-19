@@ -605,7 +605,7 @@ static unsigned lock_level(struct bio *bio)
 
 static size_t get_per_bio_data_size(struct cache *cache)
 {
-	return writethrough_mode(cache) ? PB_DATA_SIZE_WT : PB_DATA_SIZE_WB;
+	return sizeof(struct per_bio_data);
 }
 
 static struct per_bio_data *get_per_bio_data(struct bio *bio, size_t data_size)
