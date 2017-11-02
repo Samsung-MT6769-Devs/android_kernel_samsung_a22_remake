@@ -27,6 +27,125 @@
 LIST_HEAD(ncsi_dev_list);
 DEFINE_SPINLOCK(ncsi_dev_lock);
 
+static inline int ncsi_filter_size(int table)
+{
+	int sizes[] = { 2, 6, 6, 6 };
+
+	BUILD_BUG_ON(ARRAY_SIZE(sizes) != NCSI_FILTER_MAX);
+	if (table < NCSI_FILTER_BASE || table >= NCSI_FILTER_MAX)
+		return -EINVAL;
+
+	return sizes[table];
+}
+
+static u32 *ncsi_get_filter(struct ncsi_channel *nc, int table, int index)
+{
+	struct ncsi_channel_filter *ncf;
+	int size;
+
+	ncf = nc->filters[table];
+	if (!ncf)
+		return NULL;
+
+	size = ncsi_filter_size(table);
+	if (size < 0)
+		return NULL;
+
+	return ncf->data + size * index;
+}
+
+/* Find the first active filter in a filter table that matches the given
+ * data parameter. If data is NULL, this returns the first active filter.
+ */
+int ncsi_find_filter(struct ncsi_channel *nc, int table, void *data)
+{
+	struct ncsi_channel_filter *ncf;
+	void *bitmap;
+	int index, size;
+	unsigned long flags;
+
+	ncf = nc->filters[table];
+	if (!ncf)
+		return -ENXIO;
+
+	size = ncsi_filter_size(table);
+	if (size < 0)
+		return size;
+
+	spin_lock_irqsave(&nc->lock, flags);
+	bitmap = (void *)&ncf->bitmap;
+	index = -1;
+	while ((index = find_next_bit(bitmap, ncf->total, index + 1))
+	       < ncf->total) {
+		if (!data || !memcmp(ncf->data + size * index, data, size)) {
+			spin_unlock_irqrestore(&nc->lock, flags);
+			return index;
+		}
+	}
+	spin_unlock_irqrestore(&nc->lock, flags);
+
+	return -ENOENT;
+}
+
+int ncsi_add_filter(struct ncsi_channel *nc, int table, void *data)
+{
+	struct ncsi_channel_filter *ncf;
+	int index, size;
+	void *bitmap;
+	unsigned long flags;
+
+	size = ncsi_filter_size(table);
+	if (size < 0)
+		return size;
+
+	index = ncsi_find_filter(nc, table, data);
+	if (index >= 0)
+		return index;
+
+	ncf = nc->filters[table];
+	if (!ncf)
+		return -ENODEV;
+
+	spin_lock_irqsave(&nc->lock, flags);
+	bitmap = (void *)&ncf->bitmap;
+	do {
+		index = find_next_zero_bit(bitmap, ncf->total, 0);
+		if (index >= ncf->total) {
+			spin_unlock_irqrestore(&nc->lock, flags);
+			return -ENOSPC;
+		}
+	} while (test_and_set_bit(index, bitmap));
+
+	memcpy(ncf->data + size * index, data, size);
+	spin_unlock_irqrestore(&nc->lock, flags);
+
+	return index;
+}
+
+int ncsi_remove_filter(struct ncsi_channel *nc, int table, int index)
+{
+	struct ncsi_channel_filter *ncf;
+	int size;
+	void *bitmap;
+	unsigned long flags;
+
+	size = ncsi_filter_size(table);
+	if (size < 0)
+		return size;
+
+	ncf = nc->filters[table];
+	if (!ncf || index >= ncf->total)
+		return -ENODEV;
+
+	spin_lock_irqsave(&nc->lock, flags);
+	bitmap = (void *)&ncf->bitmap;
+	if (test_and_clear_bit(index, bitmap))
+		memset(ncf->data + size * index, 0, size);
+	spin_unlock_irqrestore(&nc->lock, flags);
+
+	return 0;
+}
+
 static void ncsi_report_link(struct ncsi_dev_priv *ndp, bool force_down)
 {
 	struct ncsi_dev *nd = &ndp->ndev;
