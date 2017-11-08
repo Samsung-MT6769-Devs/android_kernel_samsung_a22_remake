@@ -687,9 +687,22 @@ static int clear_one_vid(struct ncsi_dev_priv *ndp, struct ncsi_channel *nc,
 	}
 	vid = ncf->vids[index];
 
-	clear_bit(index, bitmap);
-	ncf->vids[index] = 0;
-	spin_unlock_irqrestore(&nc->lock, flags);
+	data = ncsi_get_filter(nc, NCSI_FILTER_VLAN, index);
+	if (!data) {
+		netdev_err(ndp->ndev.dev,
+			   "NCSI: failed to retrieve filter %d\n", index);
+		/* Set the VLAN id to 0 - this will still disable the entry in
+		 * the filter table, but we won't know what it was.
+		 */
+		vid = 0;
+	} else {
+		vid = *(u16 *)data;
+	}
+
+	netdev_printk(KERN_DEBUG, ndp->ndev.dev,
+		      "NCSI: removed vlan tag %u at index %d\n",
+		      vid, index + 1);
+	ncsi_remove_filter(nc, NCSI_FILTER_VLAN, index);
 
 	nca->type = NCSI_PKT_CMD_SVF;
 	nca->words[1] = vid;
@@ -722,13 +735,12 @@ static int set_one_vid(struct ncsi_dev_priv *ndp, struct ncsi_channel *nc,
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(vlan, &ndp->vlan_vids, list) {
-		vid = vlan->vid;
-		for (i = 0; i < ncf->n_vids; i++)
-			if (ncf->vids[i] == vid) {
-				vid = 0;
-				break;
-			}
-		if (vid)
+		index = ncsi_find_filter(nc, NCSI_FILTER_VLAN, &vlan->vid);
+		if (index < 0) {
+			/* New tag to add */
+			netdev_printk(KERN_DEBUG, ndp->ndev.dev,
+				      "NCSI: new vlan id to set: %u\n",
+				      vlan->vid);
 			break;
 	}
 	rcu_read_unlock();
@@ -748,10 +760,9 @@ static int set_one_vid(struct ncsi_dev_priv *ndp, struct ncsi_channel *nc,
 		return -1;
 	}
 
-	ncf->vids[index] = vid;
-	set_bit(index, bitmap);
-	spin_unlock_irqrestore(&nc->lock, flags);
-
+	netdev_printk(KERN_DEBUG, ndp->ndev.dev,
+		      "NCSI: set vid %u in packet, index %u\n",
+		      vlan->vid, index + 1);
 	nca->type = NCSI_PKT_CMD_SVF;
 	nca->words[1] = vid;
 	/* HW filter index starts at 1 */
