@@ -448,14 +448,13 @@ static int ncsi_rsp_handler_sma(struct ncsi_request *nr)
 	if (cmd->index > ncf->n_uc + ncf->n_mc + ncf->n_mixed)
 		return -ERANGE;
 
-	index = (cmd->index - 1) * ETH_ALEN;
-	spin_lock_irqsave(&nc->lock, flags);
-	if (enabled) {
-		set_bit(cmd->index - 1, bitmap);
-		memcpy(&ncf->addrs[index], cmd->mac, ETH_ALEN);
+	bitmap = &ncf->bitmap;
+	if (cmd->at_e & 0x1) {
+		set_bit(cmd->index, bitmap);
+		memcpy(ncf->data + 6 * cmd->index, cmd->mac, 6);
 	} else {
-		clear_bit(cmd->index - 1, bitmap);
-		memset(&ncf->addrs[index], 0, ETH_ALEN);
+		clear_bit(cmd->index, bitmap);
+		memset(ncf->data + 6 * cmd->index, 0, 6);
 	}
 	spin_unlock_irqrestore(&nc->lock, flags);
 
