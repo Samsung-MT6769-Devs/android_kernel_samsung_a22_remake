@@ -5584,9 +5584,7 @@ no_delete:
 }
 
 /*
- * Return the key found in the dir entry in the location pointer, fill @type
- * with BTRFS_FT_*, and return 0.
- *
+ * this returns the key found in the dir entry in the location pointer.
  * If no dir entries were found, returns -ENOENT.
  * If found a corrupted location in dir entry, returns -EUCLEAN.
  */
