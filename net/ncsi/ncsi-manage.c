@@ -38,7 +38,7 @@ static inline int ncsi_filter_size(int table)
 	return sizes[table];
 }
 
-static u32 *ncsi_get_filter(struct ncsi_channel *nc, int table, int index)
+u32 *ncsi_get_filter(struct ncsi_channel *nc, int table, int index)
 {
 	struct ncsi_channel_filter *ncf;
 	int size;
