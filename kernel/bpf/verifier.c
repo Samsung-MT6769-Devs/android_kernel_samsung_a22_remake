@@ -186,6 +186,7 @@ void bpf_verifier_vlog(struct bpf_verifier_log *log,
 __printf(2, 3) void bpf_verifier_log_write(struct bpf_verifier_log *log,
 						  const char *fmt, ...)
 {
+	struct bpf_verifier_log *log = &verifier_log;
 	va_list args;
 
 	if (!bpf_verifier_log_needed(log))
