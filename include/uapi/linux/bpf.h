@@ -147,12 +147,6 @@ enum bpf_attach_type {
 	BPF_CGROUP_INET6_BIND = 9,
 	BPF_CGROUP_INET4_CONNECT,
 	BPF_CGROUP_INET6_CONNECT,
-	BPF_CGROUP_INET4_POST_BIND,
-	BPF_CGROUP_INET6_POST_BIND,
-	BPF_CGROUP_UDP4_SENDMSG,
-	BPF_CGROUP_UDP6_SENDMSG,
-	BPF_CGROUP_UDP4_RECVMSG = 19,
-	BPF_CGROUP_UDP6_RECVMSG = 20,
 	__MAX_BPF_ATTACH_TYPE
 };
 
@@ -691,6 +685,13 @@ union bpf_attr {
  * 	Return
  * 		0 on success, or a negative error in case of failure.
  *
+ * int bpf_bind(ctx, addr, addr_len)
+ *     Bind socket to address. Only binding to IP is supported, no port can be
+ *     set in addr.
+ *     @ctx: pointer to context of type bpf_sock_addr
+ *     @addr: pointer to struct sockaddr to bind socket to
+ *     @addr_len: length of sockaddr structure
+ *     Return: 0 on success or negative error code
  */
 #define __BPF_FUNC_MAPPER(FN)		\
 	FN(unspec),			\

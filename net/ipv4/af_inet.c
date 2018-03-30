@@ -582,6 +582,12 @@ int inet_dgram_connect(struct socket *sock, struct sockaddr *uaddr,
 			return err;
 	}
 
+	if (BPF_CGROUP_PRE_CONNECT_ENABLED(sk)) {
+		err = sk->sk_prot->pre_connect(sk, uaddr, addr_len);
+		if (err)
+			return err;
+	}
+
 	if (!inet_sk(sk)->inet_num && inet_autobind(sk))
 		return -EAGAIN;
 	return prot->connect(sk, uaddr, addr_len);
