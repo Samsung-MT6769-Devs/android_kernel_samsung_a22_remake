@@ -448,13 +448,14 @@ static int ncsi_rsp_handler_sma(struct ncsi_request *nr)
 	if (cmd->index > ncf->n_uc + ncf->n_mc + ncf->n_mixed)
 		return -ERANGE;
 
-	bitmap = &ncf->bitmap;
-	if (cmd->at_e & 0x1) {
-		set_bit(cmd->index, bitmap);
-		memcpy(ncf->data + 6 * cmd->index, cmd->mac, 6);
+	index = (cmd->index - 1) * ETH_ALEN;
+	spin_lock_irqsave(&nc->lock, flags);
+	if (enabled) {
+		set_bit(cmd->index - 1, bitmap);
+		memcpy(&ncf->addrs[index], cmd->mac, ETH_ALEN);
 	} else {
-		clear_bit(cmd->index, bitmap);
-		memset(ncf->data + 6 * cmd->index, 0, 6);
+		clear_bit(cmd->index - 1, bitmap);
+		memset(&ncf->addrs[index], 0, ETH_ALEN);
 	}
 	spin_unlock_irqrestore(&nc->lock, flags);
 
@@ -650,7 +651,7 @@ static int ncsi_rsp_handler_gc(struct ncsi_request *nr)
 				      NCSI_CAP_VLAN_MASK;
 
 	size = (rsp->uc_cnt + rsp->mc_cnt + rsp->mixed_cnt) * ETH_ALEN;
-	nc->mac_filter.addrs = kzalloc(size, GFP_ATOMIC);
+	nc->mac_filter.addrs = kzalloc(size, GFP_KERNEL);
 	if (!nc->mac_filter.addrs)
 		return -ENOMEM;
 	nc->mac_filter.n_uc = rsp->uc_cnt;
@@ -659,7 +660,7 @@ static int ncsi_rsp_handler_gc(struct ncsi_request *nr)
 
 	nc->vlan_filter.vids = kcalloc(rsp->vlan_cnt,
 				       sizeof(*nc->vlan_filter.vids),
-				       GFP_ATOMIC);
+				       GFP_KERNEL);
 	if (!nc->vlan_filter.vids)
 		return -ENOMEM;
 	/* Set VLAN filters active so they are cleared in the first

@@ -320,10 +320,6 @@ extern spinlock_t ncsi_dev_lock;
 	list_for_each_entry_rcu(nc, &np->channels, node)
 
 /* Resources */
-u32 *ncsi_get_filter(struct ncsi_channel *nc, int table, int index);
-int ncsi_find_filter(struct ncsi_channel *nc, int table, void *data);
-int ncsi_add_filter(struct ncsi_channel *nc, int table, void *data);
-int ncsi_remove_filter(struct ncsi_channel *nc, int table, int index);
 void ncsi_start_channel_monitor(struct ncsi_channel *nc);
 void ncsi_stop_channel_monitor(struct ncsi_channel *nc);
 struct ncsi_channel *ncsi_find_channel(struct ncsi_package *np,
