@@ -274,7 +274,7 @@ __printf(4, 5) static void __btf_verifier_log_type(struct btf_verifier_env *env,
 	__btf_verifier_log(log, "[%u] %s %s%s",
 			   env->log_type_id,
 			   btf_kind_str[kind],
-			   btf_name_by_offset(btf, t->name),
+			   btf_name_by_offset(btf, t->name_off),
 			   log_details ? " " : "");
 
 	if (log_details)
@@ -309,7 +309,7 @@ static void btf_verifier_log_member(struct btf_verifier_env *env,
 		return;
 
 	__btf_verifier_log(log, "\t%s type_id=%u bits_offset=%u",
-			   btf_name_by_offset(btf, member->name),
+			   btf_name_by_offset(btf, member->name_off),
 			   member->type, member->offset);
 
 	if (fmt && *fmt) {
@@ -578,10 +578,10 @@ static s32 btf_struct_check_meta(struct btf_verifier_env *env,
 	btf_verifier_log_type(env, t, NULL);
 
 	for_each_member(i, t, member) {
-		if (!btf_name_offset_valid(btf, member->name)) {
+		if (!btf_name_offset_valid(btf, member->name_off)) {
 			btf_verifier_log_member(env, t, member,
 						"Invalid member name_offset:%u",
-						member->name);
+						member->name_off);
 			return -EINVAL;
 		}
 
@@ -649,14 +649,14 @@ static s32 btf_enum_check_meta(struct btf_verifier_env *env,
 	btf_verifier_log_type(env, t, NULL);
 
 	for (i = 0; i < nr_enums; i++) {
-		if (!btf_name_offset_valid(btf, enums[i].name)) {
+		if (!btf_name_offset_valid(btf, enums[i].name_off)) {
 			btf_verifier_log(env, "\tInvalid name_offset:%u",
-					 enums[i].name);
+					 enums[i].name_off);
 			return -EINVAL;
 		}
 
 		btf_verifier_log(env, "\t%s val=%d\n",
-				 btf_name_by_offset(btf, enums[i].name),
+				 btf_name_by_offset(btf, enums[i].name_off),
 				 enums[i].val);
 	}
 
@@ -667,6 +667,25 @@ static void btf_enum_log(struct btf_verifier_env *env,
 			 const struct btf_type *t)
 {
 	btf_verifier_log(env, "size=%u vlen=%u", t->size, btf_type_vlen(t));
+}
+
+static void btf_enum_seq_show(const struct btf *btf, const struct btf_type *t,
+			      u32 type_id, void *data, u8 bits_offset,
+			      struct seq_file *m)
+{
+	const struct btf_enum *enums = btf_type_enum(t);
+	u32 i, nr_enums = btf_type_vlen(t);
+	int v = *(int *)data;
+
+	for (i = 0; i < nr_enums; i++) {
+		if (v == enums[i].val) {
+			seq_printf(m, "%s",
+				   btf_name_by_offset(btf, enums[i].name_off));
+			return;
+		}
+	}
+
+	seq_printf(m, "%d", v);
 }
 
 static struct btf_kind_operations enum_ops = {
@@ -709,9 +728,9 @@ static s32 btf_check_meta(struct btf_verifier_env *env,
 		return -EINVAL;
 	}
 
-	if (!btf_name_offset_valid(env->btf, t->name)) {
+	if (!btf_name_offset_valid(env->btf, t->name_off)) {
 		btf_verifier_log(env, "[%u] Invalid name_offset:%u",
-				 env->log_type_id, t->name);
+				 env->log_type_id, t->name_off);
 		return -EINVAL;
 	}
 
