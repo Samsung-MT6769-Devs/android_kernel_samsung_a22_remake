@@ -665,13 +665,6 @@ union bpf_attr {
  * 	Return
  * 		0 on success, or a negative error in case of failure.
  *
- * int bpf_bind(ctx, addr, addr_len)
- *     Bind socket to address. Only binding to IP is supported, no port can be
- *     set in addr.
- *     @ctx: pointer to context of type bpf_sock_addr
- *     @addr: pointer to struct sockaddr to bind socket to
- *     @addr_len: length of sockaddr structure
- *     Return: 0 on success or negative error code
  */
 #define __BPF_FUNC_MAPPER(FN)		\
 	FN(unspec),			\
@@ -852,6 +845,12 @@ enum bpf_func_id {
 /* Mode for BPF_FUNC_skb_adjust_room helper. */
 enum bpf_adj_room_mode {
 	BPF_ADJ_ROOM_NET,
+};
+
+/* Mode for BPF_FUNC_skb_load_bytes_relative helper. */
+enum bpf_hdr_start_off {
+	BPF_HDR_START_MAC,
+	BPF_HDR_START_NET,
 };
 
 /* user accessible mirror of in-kernel sk_buff.
