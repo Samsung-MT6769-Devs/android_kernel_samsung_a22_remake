@@ -1999,10 +1999,9 @@ static int hdmi_pcm_close(struct hda_pcm_stream *hinfo,
 		per_pin->setup = false;
 		per_pin->channels = 0;
 		mutex_unlock(&per_pin->lock);
+	unlock:
+		mutex_unlock(&spec->pcm_lock);
 	}
-
-unlock:
-	mutex_unlock(&spec->pcm_lock);
 
 	return err;
 }
