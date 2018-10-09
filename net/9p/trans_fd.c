@@ -383,10 +383,6 @@ static void p9_read_work(struct work_struct *work)
 		if (m->req->status == REQ_STATUS_SENT) {
 			list_del(&m->req->req_list);
 			p9_client_cb(m->client, m->req, REQ_STATUS_RCVD);
-		} else if (m->req->status == REQ_STATUS_FLSHD) {
-			/* Ignore replies associated with a cancelled request. */
-			p9_debug(P9_DEBUG_TRANS,
-				 "Ignore replies associated with a cancelled request\n");
 		} else {
 			spin_unlock(&m->client->lock);
 			p9_debug(P9_DEBUG_ERROR,
