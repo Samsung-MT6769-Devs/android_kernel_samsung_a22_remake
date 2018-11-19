@@ -96,9 +96,6 @@ $(OUTPUT)test-bionic.bin:
 $(OUTPUT)test-libelf.bin:
 	$(BUILD) -lelf
 
-$(OUTPUT)test-eventfd.bin:
-	$(BUILD)
-
 $(OUTPUT)test-get_current_dir_name.bin:
 	$(BUILD)
 
