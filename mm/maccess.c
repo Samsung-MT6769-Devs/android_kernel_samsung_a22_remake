@@ -17,18 +17,6 @@ probe_read_common(void *dst, const void __user *src, size_t size)
 	return ret ? -EFAULT : 0;
 }
 
-static __always_inline long
-probe_write_common(void __user *dst, const void *src, size_t size)
-{
-	long ret;
-
-	pagefault_disable();
-	ret = __copy_to_user_inatomic(dst, src, size);
-	pagefault_enable();
-
-	return ret ? -EFAULT : 0;
-}
-
 /**
  * probe_kernel_read(): safely attempt to read from a kernel-space location
  * @dst: pointer to the buffer that shall take the data
@@ -112,6 +100,7 @@ long __probe_kernel_write(void *dst, const void *src, size_t size)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(probe_kernel_write);
+
 
 /**
  * probe_user_write(): safely attempt to write to a user-space location
