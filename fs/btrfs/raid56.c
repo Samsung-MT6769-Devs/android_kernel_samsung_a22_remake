@@ -2360,7 +2360,6 @@ static noinline void finish_parity_scrub(struct btrfs_raid_bio *rbio,
 	SetPageUptodate(p_page);
 
 	if (has_qstripe) {
-		/* RAID6, allocate and map temp space for the Q stripe */
 		q_page = alloc_page(GFP_NOFS | __GFP_HIGHMEM);
 		if (!q_page) {
 			__free_page(p_page);
@@ -2384,8 +2383,16 @@ static noinline void finish_parity_scrub(struct btrfs_raid_bio *rbio,
 			pointers[stripe] = kmap(p);
 		}
 
+		/* then add the parity stripe */
+		pointers[stripe++] = kmap(p_page);
+
 		if (has_qstripe) {
-			/* RAID6, call the library function to fill in our P/Q */
+			/*
+			 * raid6, add the qstripe and call the
+			 * library function to fill in our p/q
+			 */
+			pointers[stripe++] = kmap(q_page);
+
 			raid6_call.gen_syndrome(rbio->real_stripes, PAGE_SIZE,
 						pointers);
 		} else {
