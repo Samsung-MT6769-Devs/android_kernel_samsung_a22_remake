@@ -401,15 +401,9 @@ static inline void p_setd(struct perm_bits *p, int off, u32 virt, u32 write)
 /* Caller should hold memory_lock semaphore */
 bool __vfio_pci_memory_enabled(struct vfio_pci_device *vdev)
 {
-	struct pci_dev *pdev = vdev->pdev;
 	u16 cmd = le16_to_cpu(*(__le16 *)&vdev->vconfig[PCI_COMMAND]);
 
-	/*
-	 * SR-IOV VF memory enable is handled by the MSE bit in the
-	 * PF SR-IOV capability, there's therefore no need to trigger
-	 * faults based on the virtual value.
-	 */
-	return pdev->is_virtfn || (cmd & PCI_COMMAND_MEMORY);
+	return cmd & PCI_COMMAND_MEMORY;
 }
 
 /*
