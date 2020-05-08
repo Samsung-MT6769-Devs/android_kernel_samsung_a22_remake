@@ -196,8 +196,9 @@ static int mv_ehci_probe(struct platform_device *pdev)
 	hcd->rsrc_len = resource_size(r);
 	hcd->regs = ehci_mv->op_regs;
 
-	retval = platform_get_irq(pdev, 0);
-	if (retval < 0)
+	hcd->irq = platform_get_irq(pdev, 0);
+	if (hcd->irq < 0) {
+		retval = hcd->irq;
 		goto err_disable_clk;
 	hcd->irq = retval;
 
