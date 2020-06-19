@@ -41,10 +41,11 @@ void __icmpv6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info,
 	rcu_read_lock();
 	send = rcu_dereference(ip6_icmp_send);
 	if (send)
-		send(skb, type, code, info, NULL, parm);
+		send(skb, type, code, info, NULL);
 	rcu_read_unlock();
 }
 EXPORT_SYMBOL(icmpv6_send);
+#endif
 
 #if IS_ENABLED(CONFIG_NF_NAT)
 #include <net/netfilter/nf_conntrack.h>

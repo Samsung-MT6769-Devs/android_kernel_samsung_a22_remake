@@ -16,16 +16,13 @@ static inline struct icmp6hdr *icmp6_hdr(const struct sk_buff *skb)
 #if IS_ENABLED(CONFIG_IPV6)
 
 typedef void ip6_icmp_send_t(struct sk_buff *skb, u8 type, u8 code, __u32 info,
-			     const struct in6_addr *force_saddr,
-			     const struct inet6_skb_parm *parm);
-void icmp6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info,
-		const struct in6_addr *force_saddr,
-		const struct inet6_skb_parm *parm);
+			     const struct in6_addr *force_saddr);
 #if IS_BUILTIN(CONFIG_IPV6)
-static inline void __icmpv6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info,
-				 const struct inet6_skb_parm *parm)
+void icmp6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info,
+		const struct in6_addr *force_saddr);
+static inline void icmpv6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info)
 {
-	icmp6_send(skb, type, code, info, NULL, parm);
+	icmp6_send(skb, type, code, info, NULL);
 }
 static inline int inet6_register_icmp_sender(ip6_icmp_send_t *fn)
 {
@@ -38,16 +35,10 @@ static inline int inet6_unregister_icmp_sender(ip6_icmp_send_t *fn)
 	return 0;
 }
 #else
-extern void __icmpv6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info,
-			  const struct inet6_skb_parm *parm);
+extern void icmpv6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info);
 extern int inet6_register_icmp_sender(ip6_icmp_send_t *fn);
 extern int inet6_unregister_icmp_sender(ip6_icmp_send_t *fn);
 #endif
-
-static inline void icmpv6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info)
-{
-	__icmpv6_send(skb, type, code, info, IP6CB(skb));
-}
 
 int ip6_err_gen_icmpv6_unreach(struct sk_buff *skb, int nhs, int type,
 			       unsigned int data_len);
