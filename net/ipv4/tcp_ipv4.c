@@ -1000,9 +1000,13 @@ int tcp_md5_do_add(struct sock *sk, const union tcp_md5_addr *addr,
 		 */
 		memcpy(key->key, newkey, newkeylen);
 
-		smp_wmb(); /* pairs with smp_rmb() in tcp_md5_hash_key() */
+		/* Pairs with READ_ONCE() in tcp_md5_hash_key().
+		 * Also note that a reader could catch new key->keylen value
+		 * but old key->key[], this is the reason we use __GFP_ZERO
+		 * at sock_kmalloc() time below these lines.
+		 */
+		WRITE_ONCE(key->keylen, newkeylen);
 
-		key->keylen = newkeylen;
 		return 0;
 	}
 
