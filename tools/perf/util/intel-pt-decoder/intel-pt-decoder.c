@@ -1131,10 +1131,8 @@ static int intel_pt_walk_fup(struct intel_pt_decoder *decoder)
 			return 0;
 		if (err == -EAGAIN ||
 		    intel_pt_fup_with_nlip(decoder, &intel_pt_insn, ip, err)) {
-			bool no_tip = decoder->pkt_state != INTEL_PT_STATE_FUP;
-
 			decoder->pkt_state = INTEL_PT_STATE_IN_SYNC;
-			if (intel_pt_fup_event(decoder) && no_tip)
+			if (intel_pt_fup_event(decoder))
 				return 0;
 			return -EAGAIN;
 		}
