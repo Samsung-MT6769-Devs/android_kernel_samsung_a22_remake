@@ -2269,17 +2269,16 @@ static int hso_serial_common_create(struct hso_serial *serial, int num_urbs,
 
 	tty_port_init(&serial->port);
 
-	if (obtain_minor(serial))
+	minor = get_free_serial_index();
+	if (minor < 0)
 		goto exit2;
 
 	/* register our minor number */
 	serial->parent->dev = tty_port_register_device_attr(&serial->port,
 			tty_drv, serial->minor, &serial->parent->interface->dev,
 			serial->parent, hso_serial_dev_groups);
-	if (IS_ERR(serial->parent->dev)) {
-		release_minor(serial);
+	if (IS_ERR(serial->parent->dev))
 		goto exit2;
-	}
 	dev = serial->parent->dev;
 
 	serial->magic = HSO_SERIAL_MAGIC;
