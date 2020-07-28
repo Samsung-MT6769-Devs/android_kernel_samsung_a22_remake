@@ -2144,10 +2144,9 @@ static void kill_kprobe(struct kprobe *p)
 
 	/*
 	 * The module is going away. We should disarm the kprobe which
-	 * is using ftrace, because ftrace framework is still available at
-	 * MODULE_STATE_GOING notification.
+	 * is using ftrace.
 	 */
-	if (kprobe_ftrace(p) && !kprobe_disabled(p) && !kprobes_all_disarmed)
+	if (kprobe_ftrace(p))
 		disarm_kprobe_ftrace(p);
 }
 
