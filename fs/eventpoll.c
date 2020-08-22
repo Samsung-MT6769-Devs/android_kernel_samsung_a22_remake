@@ -2102,10 +2102,7 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 				error = -ELOOP;
 				if (ep_loop_check(ep, tf.file) != 0)
 					goto error_tgt_fput;
-<<<<<<< HEAD
-=======
-				}
->>>>>>> 7867516bcbc5 (epoll: Keep a reference on files added to the check list)
+
 			} else {
 				get_file(tf.file);
 				list_add(&tf.file->f_tfile_llink,
