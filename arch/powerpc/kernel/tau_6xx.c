@@ -97,6 +97,10 @@ void TAUupdate(int cpu)
 		tau[cpu].grew = 1;
 		pr_debug("%s: high threshold crossed\n", __func__);
 	}
+
+#ifdef DEBUG
+	printk("grew = %d\n", tau[cpu].grew);
+#endif
 }
 
 #ifdef CONFIG_TAU_INT
