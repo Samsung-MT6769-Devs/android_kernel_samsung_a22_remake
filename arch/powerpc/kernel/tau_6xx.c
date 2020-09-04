@@ -97,10 +97,6 @@ void TAUupdate(int cpu)
 		tau[cpu].grew = 1;
 		pr_debug("%s: high threshold crossed\n", __func__);
 	}
-
-#ifdef DEBUG
-	printk("grew = %d\n", tau[cpu].grew);
-#endif
 }
 
 #ifdef CONFIG_TAU_INT
@@ -158,18 +154,12 @@ static void tau_timeout(void * info)
 
 	set_thresholds(cpu);
 
-	/*
-	 * Do the enable every time, since otherwise a bunch of (relatively)
-	 * complex sleep code needs to be added. One mtspr every time
-	 * tau_timeout is called is probably not a big deal.
-	 *
+	/* Restart thermal sensor comparisons and interrupts.
 	 * The "PowerPC 740 and PowerPC 750 Microprocessor Datasheet"
 	 * recommends that "the maximum value be set in THRM3 under all
 	 * conditions."
 	 */
 	mtspr(SPRN_THRM3, THRM3_SITV(0x1fff) | THRM3_E);
-
-	local_irq_restore(flags);
 }
 
 static void tau_timeout_smp(unsigned long unused)
