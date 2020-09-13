@@ -791,15 +791,10 @@ static void vmbus_wait_for_unload(void)
 	 * vmbus_connection.unload_event. If not, the last thing we can do is
 	 * read message pages for all CPUs directly.
 	 *
-	 * Wait up to 100 seconds since an Azure host must writeback any dirty
-	 * data in its disk cache before the VMbus UNLOAD request will
-	 * complete. This flushing has been empirically observed to take up
-	 * to 50 seconds in cases with a lot of dirty data, so allow additional
-	 * leeway and for inaccuracies in mdelay(). But eventually time out so
-	 * that the panic path can't get hung forever in case the response
-	 * message isn't seen.
+	 * Wait no more than 10 seconds so that the panic path can't get
+	 * hung forever in case the response message isn't seen.
 	 */
-	for (i = 1; i <= UNLOAD_WAIT_LOOPS; i++) {
+	for (i = 0; i < 1000; i++) {
 		if (completion_done(&vmbus_connection.unload_event))
 			goto completed;
 
