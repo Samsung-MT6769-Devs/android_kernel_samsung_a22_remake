@@ -1009,7 +1009,6 @@ void uio_unregister_device(struct uio_info *info)
 		return;
 
 	idev = info->uio_dev;
-	minor = idev->minor;
 
 	mutex_lock(&idev->info_lock);
 	uio_dev_del_attributes(idev);
@@ -1022,7 +1021,7 @@ void uio_unregister_device(struct uio_info *info)
 
 	device_unregister(&idev->dev);
 
-	uio_free_minor(minor);
+	uio_free_minor(idev);
 
 	return;
 }
