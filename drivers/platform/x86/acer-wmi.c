@@ -227,6 +227,7 @@ struct hotkey_function_type_aa {
 #define ACER_CAP_BRIGHTNESS		BIT(3)
 #define ACER_CAP_THREEG			BIT(4)
 #define ACER_CAP_SET_FUNCTION_MODE	BIT(5)
+#define ACER_CAP_KBD_DOCK		BIT(6)
 
 /*
  * Interface type flags
@@ -522,15 +523,6 @@ static const struct dmi_system_id acer_quirks[] __initconst = {
 			DMI_MATCH(DMI_PRODUCT_NAME, "TravelMate 4200"),
 		},
 		.driver_data = &quirk_acer_travelmate_2490,
-	},
-	{
-		.callback = set_force_caps,
-		.ident = "Acer Aspire Switch 10E SW3-016",
-		.matches = {
-			DMI_MATCH(DMI_SYS_VENDOR, "Acer"),
-			DMI_MATCH(DMI_PRODUCT_NAME, "Aspire SW3-016"),
-		},
-		.driver_data = (void *)ACER_CAP_KBD_DOCK,
 	},
 	{
 		.callback = set_force_caps,
