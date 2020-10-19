@@ -226,8 +226,7 @@ struct hotkey_function_type_aa {
 #define ACER_CAP_BLUETOOTH		BIT(2)
 #define ACER_CAP_BRIGHTNESS		BIT(3)
 #define ACER_CAP_THREEG			BIT(4)
-#define ACER_CAP_SET_FUNCTION_MODE	BIT(5)
-#define ACER_CAP_KBD_DOCK		BIT(6)
+#define ACER_CAP_ACCEL			BIT(5)
 
 /*
  * Interface type flags
