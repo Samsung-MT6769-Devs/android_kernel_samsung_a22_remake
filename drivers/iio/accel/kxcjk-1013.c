@@ -94,6 +94,7 @@ enum kx_chipset {
 enum kx_acpi_type {
 	ACPI_GENERIC,
 	ACPI_SMO8500,
+	ACPI_KIOX010A,
 };
 
 struct kxcjk1013_data {
@@ -1196,6 +1197,8 @@ static const char *kxcjk1013_match_acpi_device(struct device *dev,
 
 	if (strcmp(id->id, "SMO8500") == 0)
 		*acpi_type = ACPI_SMO8500;
+	else if (strcmp(id->id, "KIOX010A") == 0)
+		*acpi_type = ACPI_KIOX010A;
 
 	*chipset = (enum kx_chipset)id->driver_data;
 
