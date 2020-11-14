@@ -413,7 +413,11 @@ static irqreturn_t st_lsm6dsx_handler_thread(int irq, void *private)
 		len = st_lsm6dsx_read_fifo(hw);
 		mutex_unlock(&hw->fifo_lock);
 
-	return count ? IRQ_HANDLED : IRQ_NONE;
+		if (len > 0)
+			fifo_len += len;
+	} while (len > 0);
+
+	return fifo_len ? IRQ_HANDLED : IRQ_NONE;
 }
 
 static int st_lsm6dsx_buffer_preenable(struct iio_dev *iio_dev)
