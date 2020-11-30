@@ -411,15 +411,29 @@ static void rdtgroup_remove(struct rdtgroup *rdtgrp)
 	kfree(rdtgrp);
 }
 
+struct task_move_callback {
+	struct callback_head	work;
+	struct rdtgroup		*rdtgrp;
+};
+
+static void move_myself(struct callback_head *head)
+{
+	kernfs_put(rdtgrp->kn);
+	kfree(rdtgrp);
+}
+
 static void _update_task_closid_rmid(void *task)
 {
 	/*
 	 * If the task is still current on this CPU, update PQR_ASSOC MSR.
 	 * Otherwise, the MSR is updated when the task is scheduled in.
 	 */
-	if (task == current)
-		intel_rdt_sched_in();
-}
+	if (atomic_dec_and_test(&rdtgrp->waitcount) &&
+	    (rdtgrp->flags & RDT_DELETED)) {
+		current->closid = 0;
+		current->rmid = 0;
+		rdtgroup_remove(rdtgrp);
+	}
 
 static void update_task_closid_rmid(struct task_struct *t)
 {
@@ -1609,7 +1623,7 @@ static int mkdir_rdt_prepare(struct kernfs_node *parent_kn,
 	 * kernfs_remove() will drop the reference count on "kn" which
 	 * will free it. But we still need it to stick around for the
 	 * rdtgroup_kn_unlock(kn) call. Take one extra reference here,
-	 * which will be dropped inside rdtgroup_kn_unlock().
+	 * which will be dropped by kernfs_put() in rdtgroup_remove().
 	 */
 	kernfs_get(kn);
 
