@@ -665,26 +665,17 @@ unsigned long mem_cgroup_soft_limit_reclaim(pg_data_t *pgdat, int order,
 						gfp_t gfp_mask,
 						unsigned long *total_scanned);
 
+/* idx can be of type enum memcg_event_item or vm_event_item */
 static inline void __count_memcg_events(struct mem_cgroup *memcg,
-					enum vm_event_item idx,
-					unsigned long count)
+					int idx, unsigned long count)
 {
-	unsigned long x;
-
-	if (mem_cgroup_disabled())
-		return;
-
-	x = count + __this_cpu_read(memcg->stat_cpu->events[idx]);
-	if (unlikely(x > MEMCG_CHARGE_BATCH)) {
-		atomic_long_add(x, &memcg->events[idx]);
-		x = 0;
-	}
-	__this_cpu_write(memcg->stat_cpu->events[idx], x);
+	if (!mem_cgroup_disabled())
+		__this_cpu_add(memcg->stat->events[idx], count);
 }
 
+/* idx can be of type enum memcg_event_item or vm_event_item */
 static inline void count_memcg_events(struct mem_cgroup *memcg,
-				      enum vm_event_item idx,
-				      unsigned long count)
+				      int idx, unsigned long count)
 {
 	unsigned long flags;
 
@@ -693,6 +684,7 @@ static inline void count_memcg_events(struct mem_cgroup *memcg,
 	local_irq_restore(flags);
 }
 
+/* idx can be of type enum memcg_event_item or vm_event_item */
 static inline void count_memcg_page_event(struct page *page,
 					  enum vm_event_item idx)
 {
@@ -710,31 +702,19 @@ static inline void count_memcg_event_mm(struct mm_struct *mm,
 
 	rcu_read_lock();
 	memcg = mem_cgroup_from_task(rcu_dereference(mm->owner));
-	if (likely(memcg))
+	if (likely(memcg)) {
 		count_memcg_events(memcg, idx, 1);
+		if (idx == OOM_KILL)
+			cgroup_file_notify(&memcg->events_file);
+	}
 	rcu_read_unlock();
 }
 
-static inline void memcg_memory_event(struct mem_cgroup *memcg,
-				      enum memcg_memory_event event)
+static inline void mem_cgroup_event(struct mem_cgroup *memcg,
+				    enum memcg_event_item event)
 {
-	atomic_long_inc(&memcg->memory_events[event]);
+	count_memcg_events(memcg, event, 1);
 	cgroup_file_notify(&memcg->events_file);
-}
-
-static inline void memcg_memory_event_mm(struct mm_struct *mm,
-					 enum memcg_memory_event event)
-{
-	struct mem_cgroup *memcg;
-
-	if (mem_cgroup_disabled())
-		return;
-
-	rcu_read_lock();
-	memcg = mem_cgroup_from_task(rcu_dereference(mm->owner));
-	if (likely(memcg))
-		memcg_memory_event(memcg, event);
-	rcu_read_unlock();
 }
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
