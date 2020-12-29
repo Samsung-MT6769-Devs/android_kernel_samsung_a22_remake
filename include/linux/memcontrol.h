@@ -617,22 +617,15 @@ static inline void __mod_lruvec_state(struct lruvec *lruvec,
 	__mod_memcg_state(pn->memcg, idx, val);
 
 	/* Update lruvec */
-	x = val + __this_cpu_read(pn->lruvec_stat_cpu->count[idx]);
-	if (unlikely(abs(x) > MEMCG_CHARGE_BATCH)) {
-		atomic_long_add(x, &pn->lruvec_stat[idx]);
-		x = 0;
-	}
-	__this_cpu_write(pn->lruvec_stat_cpu->count[idx], x);
+	__this_cpu_add(pn->lruvec_stat->count[idx], val);
 }
 
 static inline void mod_lruvec_state(struct lruvec *lruvec,
 				    enum node_stat_item idx, int val)
 {
-	unsigned long flags;
-
-	local_irq_save(flags);
+	preempt_disable();
 	__mod_lruvec_state(lruvec, idx, val);
-	local_irq_restore(flags);
+	preempt_enable();
 }
 
 static inline void __mod_lruvec_page_state(struct page *page,
@@ -654,11 +647,9 @@ static inline void __mod_lruvec_page_state(struct page *page,
 static inline void mod_lruvec_page_state(struct page *page,
 					 enum node_stat_item idx, int val)
 {
-	unsigned long flags;
-
-	local_irq_save(flags);
+	preempt_disable();
 	__mod_lruvec_page_state(page, idx, val);
-	local_irq_restore(flags);
+	preempt_enable();
 }
 
 unsigned long mem_cgroup_soft_limit_reclaim(pg_data_t *pgdat, int order,
