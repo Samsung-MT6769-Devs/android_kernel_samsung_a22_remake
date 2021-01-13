@@ -674,7 +674,7 @@ void unregister_xenstore_notifier(struct notifier_block *nb)
 }
 EXPORT_SYMBOL_GPL(unregister_xenstore_notifier);
 
-static void xenbus_probe(void)
+void xenbus_probe(void)
 {
 	xenstored_ready = 1;
 
@@ -705,24 +705,12 @@ static bool xs_hvm_defer_init_for_callback(void)
 #endif
 }
 
-static int xenbus_probe_thread(void *unused)
-{
-	DEFINE_WAIT(w);
-
-	/*
-	 * We actually just want to wait for *any* trigger of xb_waitq,
-	 * and run xenbus_probe() the moment it occurs.
-	 */
-	prepare_to_wait(&xb_waitq, &w, TASK_INTERRUPTIBLE);
-	schedule();
-	finish_wait(&xb_waitq, &w);
-
-	DPRINTK("probing");
-	xenbus_probe();
-	return 0;
-}
-
-static int __init xenbus_probe_initcall(void)
+/*
+ * Returns true when XenStore init must be deferred in order to
+ * allow the PCI platform device to be initialised, before we
+ * can actually have event channel interrupts working.
+ */
+static bool xs_hvm_defer_init_for_callback(void)
 {
 	/*
 	 * Probe XenBus here in the XS_PV case, and also XS_HVM unless we
@@ -733,20 +721,6 @@ static int __init xenbus_probe_initcall(void)
 	     !xs_hvm_defer_init_for_callback()))
 		xenbus_probe();
 
-	/*
-	 * For XS_LOCAL, spawn a thread which will wait for xenstored
-	 * or a xenstore-stubdom to be started, then probe. It will be
-	 * triggered when communication starts happening, by waiting
-	 * on xb_waitq.
-	 */
-	if (xen_store_domain_type == XS_LOCAL) {
-		struct task_struct *probe_task;
-
-		probe_task = kthread_run(xenbus_probe_thread, NULL,
-					 "xenbus_probe");
-		if (IS_ERR(probe_task))
-			return PTR_ERR(probe_task);
-	}
 	return 0;
 }
 device_initcall(xenbus_probe_initcall);
