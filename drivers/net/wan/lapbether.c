@@ -298,10 +298,6 @@ static int lapbeth_open(struct net_device *dev)
 		return -ENODEV;
 	}
 
-	spin_lock_bh(&lapbeth->up_lock);
-	lapbeth->up = true;
-	spin_unlock_bh(&lapbeth->up_lock);
-
 	return 0;
 }
 
@@ -309,10 +305,6 @@ static int lapbeth_close(struct net_device *dev)
 {
 	struct lapbethdev *lapbeth = netdev_priv(dev);
 	int err;
-
-	spin_lock_bh(&lapbeth->up_lock);
-	lapbeth->up = false;
-	spin_unlock_bh(&lapbeth->up_lock);
 
 	if ((err = lapb_unregister(dev)) != LAPB_OK)
 		pr_err("lapb_unregister error: %d\n", err);
