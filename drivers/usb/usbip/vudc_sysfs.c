@@ -162,6 +162,8 @@ static ssize_t store_sockfd(struct device *dev,
 			goto sock_err;
 		}
 
+		udc->ud.tcp_socket = socket;
+
 		/* unlock and create threads and get tasks */
 		spin_unlock_irq(&udc->ud.lock);
 		spin_unlock_irqrestore(&udc->lock, flags);
