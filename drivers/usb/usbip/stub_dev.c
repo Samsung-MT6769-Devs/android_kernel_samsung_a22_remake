@@ -97,6 +97,12 @@ static ssize_t store_sockfd(struct device *dev, struct device_attribute *attr,
 			goto sock_err;
 		}
 
+		if (socket->type != SOCK_STREAM) {
+			dev_err(dev, "Expecting SOCK_STREAM - found %d",
+				socket->type);
+			goto sock_err;
+		}
+
 		/* unlock and create threads and get tasks */
 		spin_unlock_irq(&sdev->ud.lock);
 		tcp_rx = kthread_create(stub_rx_loop, &sdev->ud, "stub_rx");
