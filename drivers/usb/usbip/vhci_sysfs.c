@@ -374,15 +374,13 @@ static ssize_t store_attach(struct device *dev, struct device_attribute *attr,
 	socket = sockfd_lookup(sockfd, &err);
 	if (!socket) {
 		dev_err(dev, "failed to lookup sock");
-		err = -EINVAL;
-		goto unlock_mutex;
+		return -EINVAL;
 	}
 	if (socket->type != SOCK_STREAM) {
 		dev_err(dev, "Expecting SOCK_STREAM - found %d",
 			socket->type);
 		sockfd_put(socket);
-		err = -EINVAL;
-		goto unlock_mutex;
+		return -EINVAL;
 	}
 
 	/* create threads before locking */
