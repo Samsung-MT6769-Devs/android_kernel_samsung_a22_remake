@@ -162,8 +162,6 @@ static ssize_t store_sockfd(struct device *dev,
 			goto sock_err;
 		}
 
-		udc->ud.tcp_socket = socket;
-
 		/* unlock and create threads and get tasks */
 		spin_unlock_irq(&udc->ud.lock);
 		spin_unlock_irqrestore(&udc->lock, flags);
@@ -190,7 +188,7 @@ static ssize_t store_sockfd(struct device *dev,
 
 		udc->ud.tcp_socket = socket;
 		udc->ud.tcp_rx = tcp_rx;
-		udc->ud.tcp_tx = tcp_tx;
+		udc->ud.tcp_rx = tcp_tx;
 		udc->ud.status = SDEV_ST_USED;
 
 		spin_unlock_irq(&udc->ud.lock);
@@ -203,8 +201,6 @@ static ssize_t store_sockfd(struct device *dev,
 
 		wake_up_process(udc->ud.tcp_rx);
 		wake_up_process(udc->ud.tcp_tx);
-
-		mutex_unlock(&udc->ud.sysfs_lock);
 		return count;
 
 	} else {
