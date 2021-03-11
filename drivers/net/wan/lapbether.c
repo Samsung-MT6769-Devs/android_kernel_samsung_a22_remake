@@ -170,12 +170,6 @@ static netdev_tx_t lapbeth_xmit(struct sk_buff *skb,
 	if (skb->len < 1)
 		goto drop;
 
-	/* There should be a pseudo header of 1 byte added by upper layers.
-	 * Check to make sure it is there before reading it.
-	 */
-	if (skb->len < 1)
-		goto drop;
-
 	switch (skb->data[0]) {
 	case X25_IFACE_DATA:
 		break;
@@ -298,6 +292,10 @@ static int lapbeth_open(struct net_device *dev)
 		return -ENODEV;
 	}
 
+	spin_lock_bh(&lapbeth->up_lock);
+	lapbeth->up = true;
+	spin_unlock_bh(&lapbeth->up_lock);
+
 	return 0;
 }
 
@@ -305,6 +303,10 @@ static int lapbeth_close(struct net_device *dev)
 {
 	struct lapbethdev *lapbeth = netdev_priv(dev);
 	int err;
+
+	spin_lock_bh(&lapbeth->up_lock);
+	lapbeth->up = false;
+	spin_unlock_bh(&lapbeth->up_lock);
 
 	if ((err = lapb_unregister(dev)) != LAPB_OK)
 		pr_err("lapb_unregister error: %d\n", err);
