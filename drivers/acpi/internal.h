@@ -103,7 +103,7 @@ extern struct list_head acpi_bus_id_list;
 
 struct acpi_device_bus_id {
 	const char *bus_id;
-	unsigned int instance_no;
+	struct ida instance_ida;
 	struct list_head node;
 };
 
