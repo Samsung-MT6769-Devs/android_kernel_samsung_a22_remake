@@ -102,13 +102,13 @@ static ssize_t store_sockfd(struct device *dev, struct device_attribute *attr,
 		tcp_rx = kthread_create(stub_rx_loop, &sdev->ud, "stub_rx");
 		if (IS_ERR(tcp_rx)) {
 			sockfd_put(socket);
-			return -EINVAL;
+			goto unlock_mutex;
 		}
 		tcp_tx = kthread_create(stub_tx_loop, &sdev->ud, "stub_tx");
 		if (IS_ERR(tcp_tx)) {
 			kthread_stop(tcp_rx);
 			sockfd_put(socket);
-			return -EINVAL;
+			goto unlock_mutex;
 		}
 
 		/* get task structs now */
@@ -126,6 +126,8 @@ static ssize_t store_sockfd(struct device *dev, struct device_attribute *attr,
 
 		wake_up_process(sdev->ud.tcp_rx);
 		wake_up_process(sdev->ud.tcp_tx);
+
+		mutex_unlock(&sdev->ud.sysfs_lock);
 
 	} else {
 		dev_info(dev, "stub down\n");
