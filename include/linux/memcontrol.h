@@ -53,7 +53,6 @@ enum memcg_memory_event {
 	MEMCG_HIGH,
 	MEMCG_MAX,
 	MEMCG_OOM,
-	MEMCG_OOM_KILL,
 	MEMCG_NR_MEMORY_EVENTS,
 };
 
@@ -212,6 +211,7 @@ struct mem_cgroup {
 	int		oom_kill_disable;
 
 	/* memory.events */
+	atomic_long_t memory_events[MEMCG_NR_MEMORY_EVENTS];
 	struct cgroup_file events_file;
 
 	/* protect arrays of thresholds */
@@ -244,9 +244,10 @@ struct mem_cgroup {
 	struct task_struct	*move_lock_task;
 	unsigned long		move_lock_flags;
 
+	/* memory.stat */
 	struct mem_cgroup_stat_cpu __percpu *stat_cpu;
 	atomic_long_t		stat[MEMCG_NR_STAT];
-	atomic_long_t		events[MEMCG_NR_EVENTS];
+	atomic_long_t		events[NR_VM_EVENT_ITEMS];
 
 	unsigned long		socket_pressure;
 
@@ -661,9 +662,9 @@ unsigned long mem_cgroup_soft_limit_reclaim(pg_data_t *pgdat, int order,
 						gfp_t gfp_mask,
 						unsigned long *total_scanned);
 
-/* idx can be of type enum memcg_event_item or vm_event_item */
 static inline void __count_memcg_events(struct mem_cgroup *memcg,
-					int idx, unsigned long count)
+					enum vm_event_item idx,
+					unsigned long count)
 {
 	unsigned long x;
 
@@ -679,7 +680,8 @@ static inline void __count_memcg_events(struct mem_cgroup *memcg,
 }
 
 static inline void count_memcg_events(struct mem_cgroup *memcg,
-				      int idx, unsigned long count)
+				      enum vm_event_item idx,
+				      unsigned long count)
 {
 	unsigned long flags;
 
@@ -688,7 +690,6 @@ static inline void count_memcg_events(struct mem_cgroup *memcg,
 	local_irq_restore(flags);
 }
 
-/* idx can be of type enum memcg_event_item or vm_event_item */
 static inline void count_memcg_page_event(struct page *page,
 					  enum vm_event_item idx)
 {
@@ -714,10 +715,10 @@ static inline void count_memcg_event_mm(struct mm_struct *mm,
 	rcu_read_unlock();
 }
 
-static inline void mem_cgroup_event(struct mem_cgroup *memcg,
-				    enum memcg_event_item event)
+static inline void memcg_memory_event(struct mem_cgroup *memcg,
+				      enum memcg_memory_event event)
 {
-	count_memcg_events(memcg, event, 1);
+	atomic_long_inc(&memcg->memory_events[event]);
 	cgroup_file_notify(&memcg->events_file);
 }
 
@@ -739,11 +740,6 @@ static inline bool mem_cgroup_disabled(void)
 
 static inline void memcg_memory_event(struct mem_cgroup *memcg,
 				      enum memcg_memory_event event)
-{
-}
-
-static inline void memcg_memory_event_mm(struct mm_struct *mm,
-					 enum memcg_memory_event event)
 {
 }
 
