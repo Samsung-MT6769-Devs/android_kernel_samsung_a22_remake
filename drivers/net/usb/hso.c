@@ -2269,16 +2269,17 @@ static int hso_serial_common_create(struct hso_serial *serial, int num_urbs,
 
 	tty_port_init(&serial->port);
 
-	minor = get_free_serial_index();
-	if (minor < 0)
+	if (obtain_minor(serial))
 		goto exit2;
 
 	/* register our minor number */
 	serial->parent->dev = tty_port_register_device_attr(&serial->port,
 			tty_drv, serial->minor, &serial->parent->interface->dev,
 			serial->parent, hso_serial_dev_groups);
-	if (IS_ERR(serial->parent->dev))
+	if (IS_ERR(serial->parent->dev)) {
+		release_minor(serial);
 		goto exit2;
+	}
 	dev = serial->parent->dev;
 
 	serial->magic = HSO_SERIAL_MAGIC;
@@ -3112,7 +3113,7 @@ static void hso_free_interface(struct usb_interface *interface)
 			cancel_work_sync(&serial_table[i]->async_put_intf);
 			cancel_work_sync(&serial_table[i]->async_get_intf);
 			hso_serial_tty_unregister(serial);
-			kref_put(&serial->parent->ref, hso_serial_ref_free);
+			kref_put(&serial_table[i]->ref, hso_serial_ref_free);
 		}
 	}
 
