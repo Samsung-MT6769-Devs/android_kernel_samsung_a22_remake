@@ -1108,12 +1108,12 @@ static int vgacon_resize(struct vc_data *c, unsigned int width,
 		 */
 		screen_info.orig_video_cols = width;
 		screen_info.orig_video_lines = height;
-		vga_default_font_height = c->vc_font.height;
+		vga_default_font_height = c->vc_cell_height;
 		return 0;
 	}
 	if (width % 2 || width > screen_info.orig_video_cols ||
 	    height > (screen_info.orig_video_lines * vga_default_font_height)/
-	    c->vc_font.height)
+	    c->vc_cell_height)
 		return -EINVAL;
 
 	if (con_is_visible(c) && !vga_is_gfx) /* who knows */
