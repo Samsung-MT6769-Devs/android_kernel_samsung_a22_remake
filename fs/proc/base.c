@@ -2615,9 +2615,7 @@ out:
 #ifdef CONFIG_SECURITY
 static int proc_pid_attr_open(struct inode *inode, struct file *file)
 {
-	file->private_data = NULL;
-	__mem_open(inode, file, PTRACE_MODE_READ_FSCREDS);
-	return 0;
+	return __mem_open(inode, file, PTRACE_MODE_READ_FSCREDS);
 }
 
 static ssize_t proc_pid_attr_read(struct file * file, char __user * buf,
@@ -2650,7 +2648,7 @@ static ssize_t proc_pid_attr_write(struct file * file, const char __user * buf,
 	struct task_struct *task = get_proc_task(inode);
 
 	/* A task may only write when it was the opener. */
-	if (file->f_cred != current_real_cred())
+	if (file->private_data != current->mm)
 		return -EPERM;
 
 	length = -ESRCH;
