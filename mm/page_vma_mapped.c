@@ -267,9 +267,15 @@ restart:
 	if (!map_pte(pvmw))
 		goto next_pte;
 	while (1) {
+		unsigned long end;
+
 		if (check_pte(pvmw))
 			return true;
 next_pte:
+		/* Seek to next pte only makes sense for THP */
+		if (!PageTransHuge(pvmw->page) || PageHuge(pvmw->page))
+			return not_found(pvmw);
+		end = vma_address_end(pvmw->page, pvmw->vma);
 		do {
 			pvmw->address += PAGE_SIZE;
 			if (pvmw->address >= end)
