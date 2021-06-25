@@ -160,7 +160,6 @@ bool page_vma_mapped_walk(struct page_vma_mapped_walk *pvmw)
 		if (pvmw->pte)
 			return not_found(pvmw);
 
-	if (unlikely(PageHuge(page))) {
 		/* when pud is not present, pte will be NULL */
 		pvmw->pte = huge_pte_offset(mm, pvmw->address,
 					    PAGE_SIZE << compound_order(page));
@@ -173,6 +172,40 @@ bool page_vma_mapped_walk(struct page_vma_mapped_walk *pvmw)
 			return not_found(pvmw);
 		return true;
 	}
+
+	if (pvmw->pte)
+		goto next_pte;
+restart:
+	pgd = pgd_offset(mm, pvmw->address);
+	if (!pgd_present(*pgd))
+		return false;
+	p4d = p4d_offset(pgd, pvmw->address);
+	if (!p4d_present(*p4d))
+		return false;
+	pud = pud_offset(p4d, pvmw->address);
+	if (!pud_present(*pud))
+		return false;
+	pvmw->pmd = pmd_offset(pud, pvmw->address);
+	/*
+	 * Make sure the pmd value isn't cached in a register by the
+	 * compiler and used as a stale value after we've observed a
+	 * subsequent update.
+	 */
+	pmde = READ_ONCE(*pvmw->pmd);
+	if (pmd_trans_huge(pmde) || is_pmd_migration_entry(pmde)) {
+		pvmw->ptl = pmd_lock(mm, pvmw->pmd);
+		if (likely(pmd_trans_huge(*pvmw->pmd))) {
+			if (pvmw->flags & PVMW_MIGRATION)
+				return not_found(pvmw);
+			if (pmd_page(*pvmw->pmd) != page)
+				return not_found(pvmw);
+			return true;
+		} else if (!pmd_present(*pvmw->pmd)) {
+			if (thp_migration_supported()) {
+				if (!(pvmw->flags & PVMW_MIGRATION))
+					return not_found(pvmw);
+				if (is_migration_entry(pmd_to_swp_entry(*pvmw->pmd))) {
+					swp_entry_t entry = pmd_to_swp_entry(*pvmw->pmd);
 
 	/*
 	 * Seek to next pte only makes sense for THP.
@@ -273,7 +306,7 @@ restart:
 			return true;
 next_pte:
 		/* Seek to next pte only makes sense for THP */
-		if (!PageTransHuge(page) || PageHuge(page))
+		if (!PageTransHuge(page))
 			return not_found(pvmw);
 		end = vma_address_end(page, pvmw->vma);
 		do {
