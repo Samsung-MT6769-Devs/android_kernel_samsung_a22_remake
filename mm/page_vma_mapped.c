@@ -236,10 +236,7 @@ restart:
 		}
 		if (!map_pte(pvmw))
 			goto next_pte;
-	}
-	while (1) {
-		unsigned long end;
-
+this_pte:
 		if (check_pte(pvmw))
 			return true;
 next_pte:
@@ -269,9 +266,7 @@ next_pte:
 			spin_lock(pvmw->ptl);
 		}
 		goto this_pte;
-	} while (pvmw->address < end);
-
-	return false;
+	}
 }
 
 /**
