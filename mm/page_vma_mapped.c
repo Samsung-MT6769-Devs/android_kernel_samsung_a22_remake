@@ -201,90 +201,22 @@ restart:
 			if (pmd_page(pmde) != page)
 				return not_found(pvmw);
 			return true;
-		} else if (!pmd_present(pmde)) {
-			if (thp_migration_supported()) {
-				if (!(pvmw->flags & PVMW_MIGRATION))
-					return not_found(pvmw);
-				if (is_migration_entry(pmd_to_swp_entry(pmde))) {
-					swp_entry_t entry = pmd_to_swp_entry(pmde);
-
-	/*
-	 * Seek to next pte only makes sense for THP.
-	 * But more important than that optimization, is to filter out
-	 * any PageKsm page: whose page->index misleads vma_address()
-	 * and vma_address_end() to disaster.
-	 */
-	end = PageTransCompound(page) ?
-		vma_address_end(page, pvmw->vma) :
-		pvmw->address + PAGE_SIZE;
-	if (pvmw->pte)
-		goto next_pte;
-restart:
-	do {
-		pgd = pgd_offset(mm, pvmw->address);
-		if (!pgd_present(*pgd)) {
-			step_forward(pvmw, PGDIR_SIZE);
-			continue;
 		}
-		p4d = p4d_offset(pgd, pvmw->address);
-		if (!p4d_present(*p4d)) {
-			step_forward(pvmw, P4D_SIZE);
-			continue;
+		if (!pmd_present(pmde)) {
+			swp_entry_t entry;
+
+			if (!thp_migration_supported() ||
+			    !(pvmw->flags & PVMW_MIGRATION))
+				return not_found(pvmw);
+			entry = pmd_to_swp_entry(pmde);
+			if (!is_migration_entry(entry) ||
+			    migration_entry_to_page(entry) != page)
+				return not_found(pvmw);
+			return true;
 		}
-		pud = pud_offset(p4d, pvmw->address);
-		if (!pud_present(*pud)) {
-			step_forward(pvmw, PUD_SIZE);
-			continue;
-		}
-
-		pvmw->pmd = pmd_offset(pud, pvmw->address);
-		/*
-		 * Make sure the pmd value isn't cached in a register by the
-		 * compiler and used as a stale value after we've observed a
-		 * subsequent update.
-		 */
-		pmde = READ_ONCE(*pvmw->pmd);
-
-		if (pmd_trans_huge(pmde) || is_pmd_migration_entry(pmde)) {
-			pvmw->ptl = pmd_lock(mm, pvmw->pmd);
-			pmde = *pvmw->pmd;
-			if (likely(pmd_trans_huge(pmde))) {
-				if (pvmw->flags & PVMW_MIGRATION)
-					return not_found(pvmw);
-				if (pmd_page(pmde) != page)
-					return not_found(pvmw);
-				return true;
-			}
-			if (!pmd_present(pmde)) {
-				swp_entry_t entry;
-
-				if (!thp_migration_supported() ||
-				    !(pvmw->flags & PVMW_MIGRATION))
-					return not_found(pvmw);
-				entry = pmd_to_swp_entry(pmde);
-				if (!is_migration_entry(entry) ||
-				    migration_entry_to_page(entry) != page)
-					return not_found(pvmw);
-				return true;
-			}
-			/* THP pmd was split under us: handle on pte level */
-			spin_unlock(pvmw->ptl);
-			pvmw->ptl = NULL;
-		} else if (!pmd_present(pmde)) {
-			/*
-			 * If PVMW_SYNC, take and drop THP pmd lock so that we
-			 * cannot return prematurely, while zap_huge_pmd() has
-			 * cleared *pmd but not decremented compound_mapcount().
-			 */
-			if ((pvmw->flags & PVMW_SYNC) &&
-			    PageTransCompound(page)) {
-				spinlock_t *ptl = pmd_lock(mm, pvmw->pmd);
-
-				spin_unlock(ptl);
-			}
-			step_forward(pvmw, PMD_SIZE);
-			continue;
-		}
+		/* THP pmd was split under us: handle on pte level */
+		spin_unlock(pvmw->ptl);
+		pvmw->ptl = NULL;
 	} else if (!pmd_present(pmde)) {
 		/*
 		 * If PVMW_SYNC, take and drop THP pmd lock so that we
