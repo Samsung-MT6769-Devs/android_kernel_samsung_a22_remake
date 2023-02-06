@@ -59,8 +59,8 @@ endif
         else
             export MTK_COMBO_CHIP=CONNAC
             PATH_TO_WMT_DRV      = $(srctree)/drivers/misc/mediatek/connectivity/common
-        endif	
-		
+        endif
+
         # for gen4m options
         export CONFIG_MTK_COMBO_WIFI_HIF=axi
         export WLAN_CHIP_ID=$(MTK_PLATFORM_ID)
@@ -85,12 +85,12 @@ endif
         # Do build-in for xxx.c checking
         subdir-ccflags-y += -D MTK_WCN_REMOVE_KERNEL_MODULE
         subdir-ccflags-y += -D MTK_WCN_BUILT_IN_DRIVER
-		
+
         obj-y += wmt_drv/
         obj-y += wmt_chrdev_wifi/
         obj-y += wlan_drv_gen4m/
         obj-y += bt/
-        obj-y += gps/	
+        obj-y += gps/
 
         # For FM built-in mode
         # for fmradio options

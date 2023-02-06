@@ -454,10 +454,7 @@ static void bgfsys_cal_data_backup(
  *    N/A
  *
  */
-static void bgfsys_cal_data_restore(uint32_t start_addr,
-					 	uint32_t ready_addr,
-						uint8_t *cal_data,
-						uint16_t data_len)
+static void bgfsys_cal_data_restore(uint32_t start_addr, uint32_t ready_addr, uint8_t *cal_data, uint16_t data_len)
 {
 	uint32_t start_offset, ready_offset;
 	uint32_t ready_status = 0;
