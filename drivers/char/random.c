@@ -148,12 +148,11 @@ EXPORT_SYMBOL(wait_for_random_bytes);
  * returns: 0 if callback is successfully added
  *	    -EALREADY if pool is already initialised (callback not called)
  */
-int add_random_ready_callback(struct random_ready_callback *rdy)
+int register_random_ready_notifier(struct notifier_block *nb)
 {
 	unsigned long flags;
 	int ret = -EALREADY;
 
-	if (crng_ready())
 		return ret;
 
 	spin_lock_irqsave(&random_ready_chain_lock, flags);
@@ -161,12 +160,14 @@ int add_random_ready_callback(struct random_ready_callback *rdy)
 		ret = raw_notifier_chain_register(&random_ready_chain, nb);
 	spin_unlock_irqrestore(&random_ready_chain_lock, flags);
 	return ret;
+
 }
+EXPORT_SYMBOL(register_random_ready_notifier);
 
 /*
  * Delete a previously registered readiness callback function.
  */
-void del_random_ready_callback(struct random_ready_callback *rdy)
+int unregister_random_ready_notifier(struct notifier_block *nb)
 {
 	unsigned long flags;
 	int ret;
@@ -176,16 +177,15 @@ void del_random_ready_callback(struct random_ready_callback *rdy)
 	spin_unlock_irqrestore(&random_ready_chain_lock, flags);
 	return ret;
 }
+EXPORT_SYMBOL(unregister_random_ready_notifier);
 
 static void process_random_ready_list(void)
 {
 	unsigned long flags;
-
 	spin_lock_irqsave(&random_ready_chain_lock, flags);
 	raw_notifier_call_chain(&random_ready_chain, 0, NULL);
 	spin_unlock_irqrestore(&random_ready_chain_lock, flags);
 }
-
 #define warn_unseeded_randomness() \
 	_warn_unseeded_randomness(__func__, (void *)_RET_IP_)
 

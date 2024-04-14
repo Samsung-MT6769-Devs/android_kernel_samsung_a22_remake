@@ -551,7 +551,7 @@ static int prandom_timer_start(struct notifier_block *nb,
 			       unsigned long action, void *data)
 {
 	mod_timer(&seed_timer, jiffies);
-	return 0;
+        return 0;
 }
 
 /*
