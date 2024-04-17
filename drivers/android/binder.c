@@ -3518,20 +3518,12 @@ static bool binder_proc_transaction(struct binder_transaction *t,
 	if (!thread && !pending_async)
 		thread = binder_select_thread_ilocked(proc);
 
-	if (thread) {
-		binder_transaction_priority(thread->task, t, node_prio,
-					    node->inherit_rt);
+	if (thread)
 		binder_enqueue_thread_work_ilocked(thread, &t->work);
-#ifdef CONFIG_MTK_TASK_TURBO
-		if (binder_start_turbo_inherit(t->from ?
-				t->from->task : NULL, thread->task))
-			t->inherit_task = thread->task;
-#endif
-	} else if (!pending_async) {
+	else if (!pending_async)
 		binder_enqueue_work_ilocked(&t->work, &proc->todo);
-	} else {
+	else
 		binder_enqueue_work_ilocked(&t->work, &node->async_todo);
-	}
 
 	if (!pending_async)
 		binder_wakeup_thread_ilocked(proc, thread, !oneway /* sync */);
@@ -4219,10 +4211,6 @@ retry_lowmem:
 
 	if (reply) {
 		binder_enqueue_thread_work(thread, tcomplete);
-#ifdef BINDER_WATCHDOG
-		binder_update_transaction_time(&binder_transaction_log,
-				in_reply_to, 2);
-#endif
 		binder_inner_proc_lock(target_proc);
 		if (target_thread->is_dead) {
 			binder_inner_proc_unlock(target_proc);
