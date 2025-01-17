@@ -979,9 +979,7 @@ static int xhci_mtk_remove(struct platform_device *dev)
 	xhci_mtk_phy_power_off(mtk);
 	xhci_mtk_phy_exit(mtk);
 	device_init_wakeup(&dev->dev, false);
-
 	mtk_xhci_wakelock_unlock(mtk);
-
 	xhci_mtk_dbg_exit(mtk);
 	usb_remove_hcd(hcd);
 	usb_put_hcd(shared_hcd);
