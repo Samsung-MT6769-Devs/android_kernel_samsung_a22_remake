@@ -50,6 +50,7 @@
 #include <linux/syscalls.h>
 #include <linux/completion.h>
 #include <linux/uuid.h>
+#include <crypto/chacha.h>
 #include <linux/uaccess.h>
 #include <linux/siphash.h>
 #include <linux/uio.h>
@@ -108,11 +109,6 @@ bool rng_is_initialized(void)
 	return crng_ready();
 }
 EXPORT_SYMBOL(rng_is_initialized);
-
-static void crng_set_ready(struct work_struct *work)
-{
-	static_branch_enable(&crng_is_ready);
-}
 
 /* Used by wait_for_random_bytes(), and considered an entropy collector, below. */
 static void try_to_generate_entropy(void);
@@ -891,7 +887,7 @@ EXPORT_SYMBOL_GPL(add_hwgenerator_randomness);
  * Handle random seed passed by bootloader, and credit it if
  * CONFIG_RANDOM_TRUST_BOOTLOADER is set.
  */
-void add_bootloader_randomness(const void *buf, size_t len)
+void __init add_bootloader_randomness(const void *buf, size_t len)
 {
 	mix_pool_bytes(buf, len);
 	if (trust_bootloader)

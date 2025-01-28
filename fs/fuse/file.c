@@ -17,7 +17,9 @@
 #include <linux/swap.h>
 #include <linux/falloc.h>
 #include <linux/uio.h>
+#include <linux/sched/mm.h>
 #include <linux/fs.h>
+#include <mt-plat/mtk_blocktag.h>
 
 static const struct file_operations fuse_direct_io_file_operations;
 
