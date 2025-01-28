@@ -238,6 +238,16 @@ void __put_cred(struct cred *cred)
 	       atomic_long_read(&cred->usage),
 	       read_cred_subscribers(cred));
 
+#ifdef CONFIG_KDP_CRED
+	if (rkp_ro_page((unsigned long)cred))
+		BUG_ON((rocred_uc_read(cred)) != 0);
+	else
+#endif
+#ifdef CONFIG_RUSTUH_KDP_CRED
+	if (is_kdp_protect_addr((unsigned long)cred))
+		BUG_ON(ROCRED_UC_READ(cred) != 0);
+	else
+#endif
 	BUG_ON(atomic_long_read(&cred->usage) != 0);
 #ifdef CONFIG_DEBUG_CREDENTIALS
 	BUG_ON(read_cred_subscribers(cred) != 0);
@@ -344,8 +354,8 @@ const struct cred *get_task_cred(struct task_struct *task)
 	do {
 		cred = __task_cred((task));
 		BUG_ON(!cred);
-	} while (!atomic_long_inc_not_zero(&((struct cred *)cred)->usage));
-
+        } while (!atomic_long_inc_not_zero(&((struct cred *)cred)->usage));
+#endif
 	rcu_read_unlock();
 	return cred;
 }
@@ -717,6 +727,16 @@ int commit_creds(struct cred *new)
 	validate_creds(old);
 	validate_creds(new);
 #endif
+#ifdef CONFIG_KDP_CRED
+	if (rkp_ro_page((unsigned long)new))
+		BUG_ON((rocred_uc_read(new)) < 1);
+	else
+#endif
+#ifdef CONFIG_RUSTUH_KDP_CRED
+	if (is_kdp_protect_addr((unsigned long)new))
+		BUG_ON(ROCRED_UC_READ(new) < 1);
+	else
+#endif
 	BUG_ON(atomic_long_read(&new->usage) < 1);
 
 	get_cred(new); /* we will require a ref for the subj creds too */
@@ -824,6 +844,16 @@ void abort_creds(struct cred *new)
 
 #ifdef CONFIG_DEBUG_CREDENTIALS
 	BUG_ON(read_cred_subscribers(new) != 0);
+#endif
+#ifdef CONFIG_KDP_CRED
+	if (rkp_ro_page((unsigned long)new))
+		BUG_ON((rocred_uc_read(new)) < 1);
+	else
+#endif
+#ifdef CONFIG_RUSTUH_KDP_CRED
+	if (is_kdp_protect_addr((unsigned long)new))
+		BUG_ON(ROCRED_UC_READ(new) < 1);
+	else
 #endif
 	BUG_ON(atomic_long_read(&new->usage) < 1);
 	put_cred(new);

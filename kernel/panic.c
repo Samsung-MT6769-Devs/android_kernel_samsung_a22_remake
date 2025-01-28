@@ -28,6 +28,9 @@
 #include <linux/console.h>
 #include <linux/bug.h>
 #include <linux/ratelimit.h>
+#ifdef CONFIG_SEC_DEBUG
+#include <linux/sec_debug.h>
+#endif
 #include <linux/sysfs.h>
 
 #define PANIC_TIMER_STEP 100
@@ -196,6 +199,10 @@ void panic(const char *fmt, ...)
 #ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
 	struct pt_regs regs;
 
+	regs.regs[30] = _RET_IP_;
+	regs.pc = regs.regs[30] - sizeof(unsigned int);
+#endif
+#endif
 	if (panic_on_warn) {
 		/*
 		 * This thread may hit another WARN() in the panic path.

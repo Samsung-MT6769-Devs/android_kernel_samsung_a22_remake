@@ -141,33 +141,6 @@ long __probe_user_write(void __user *dst, const void *src, size_t size)
 EXPORT_SYMBOL_GPL(probe_user_write);
 
 /**
- * probe_user_write(): safely attempt to write to a user-space location
- * @dst: address to write to
- * @src: pointer to the data that shall be written
- * @size: size of the data chunk
- *
- * Safely write to address @dst from the buffer at @src.  If a kernel fault
- * happens, handle that and return -EFAULT.
- */
-
-long __weak probe_user_write(void __user *dst, const void *src, size_t size)
-    __attribute__((alias("__probe_user_write")));
-
-long __probe_user_write(void __user *dst, const void *src, size_t size)
-{
-	long ret = -EFAULT;
-	mm_segment_t old_fs = get_fs();
-
-	set_fs(USER_DS);
-	if (access_ok(VERIFY_WRITE, dst, size))
-		ret = probe_write_common(dst, src, size);
-	set_fs(old_fs);
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(probe_user_write);
-
-/**
  * strncpy_from_unsafe: - Copy a NUL terminated string from unsafe address.
  * @dst:   Destination address, in kernel space.  This buffer must be at
  *         least @count bytes long.
