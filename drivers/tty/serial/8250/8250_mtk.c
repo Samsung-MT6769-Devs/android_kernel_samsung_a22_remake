@@ -346,21 +346,7 @@ mtk8250_set_termios(struct uart_port *port, struct ktermios *termios,
 	struct uart_8250_port *up = up_to_u8250p(port);
 	unsigned long flags;
 	unsigned int baud, quot;
-
-	/*
-	 * Store the requested baud rate before calling the generic 8250
-	 * set_termios method. Standard 8250 port expects bauds to be
-	 * no higher than (uartclk / 16) so the baud will be clamped if it
-	 * gets out of that bound. Mediatek 8250 port supports speed
-	 * higher than that, therefore we'll get original baud rate back
-	 * after calling the generic set_termios method and recalculate
-	 * the speed later in this method.
-	 */
-	baud = tty_termios_baud_rate(termios);
-
-	serial8250_do_set_termios(port, termios, NULL);
-
-	tty_termios_encode_baud_rate(termios, baud, baud);
+	int mode;
 
 	/*
 	 * If the uart is console port, and uart device tree also
