@@ -75,7 +75,7 @@ struct bpf_map {
 	atomic_t refcnt;
 	atomic_t usercnt;
 	struct work_struct work;
-	u8 name[BPF_OBJ_NAME_LEN];
+	char name[BPF_OBJ_NAME_LEN];
 };
 
 /* function argument constraints */
@@ -223,7 +223,8 @@ struct bpf_prog_aux {
 	void *security;
 #endif
 	u64 load_time; /* ns since boottime */
-	u8 name[BPF_OBJ_NAME_LEN];
+	char name[BPF_OBJ_NAME_LEN];
+	struct bpf_dev_offload *offload;
 	union {
 		struct work_struct work;
 		struct rcu_head	rcu;
@@ -415,6 +416,7 @@ struct bpf_prog *bpf_prog_get_type_path(const char *name, enum bpf_prog_type typ
 
 /* Map specifics */
 struct net_device  *__dev_map_lookup_elem(struct bpf_map *map, u32 key);
+struct net_device  *__dev_map_hash_lookup_elem(struct bpf_map *map, u32 key);
 void __dev_map_insert_ctx(struct bpf_map *map, u32 index);
 void __dev_map_flush(struct bpf_map *map);
 
@@ -488,6 +490,12 @@ static inline struct bpf_prog *bpf_prog_get_type_path(const char *name,
 
 static inline struct net_device  *__dev_map_lookup_elem(struct bpf_map *map,
 						       u32 key)
+{
+	return NULL;
+}
+
+static inline struct net_device  *__dev_map_hash_lookup_elem(struct bpf_map *map,
+							     u32 key)
 {
 	return NULL;
 }

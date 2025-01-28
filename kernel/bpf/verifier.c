@@ -156,7 +156,7 @@ struct bpf_call_arg_meta {
 /* verbose verifier prints what it's seeing
  * bpf_check() is called under lock, so no race to access these global vars
  */
-static struct bpf_verifer_log verifier_log;
+static struct bpf_verifier_log verifier_log;
 
 static DEFINE_MUTEX(bpf_verifier_lock);
 
@@ -186,7 +186,6 @@ void bpf_verifier_vlog(struct bpf_verifier_log *log,
 __printf(2, 3) void bpf_verifier_log_write(struct bpf_verifier_log *log,
 						  const char *fmt, ...)
 {
-	struct bpf_verifier_log *log = &verifier_log;
 	va_list args;
 
 	if (!bpf_verifier_log_needed(log))
@@ -203,15 +202,13 @@ EXPORT_SYMBOL_GPL(bpf_verifier_log_write);
  */
 static __printf(1, 2) void verbose(const char *fmt, ...)
 {
-	struct bpf_verifer_log *log = &verifier_log;
 	va_list args;
 
-	if (!log->level || bpf_verifier_log_full(log))
+	if (!bpf_verifier_log_needed(&verifier_log))
 		return;
 
 	va_start(args, fmt);
-	log->len_used += vscnprintf(log->kbuf + log->len_used,
-				    log->len_total - log->len_used, fmt, args);
+	bpf_verifier_vlog(&verifier_log, fmt, args);
 	va_end(args);
 }
 
@@ -3627,6 +3624,10 @@ static int check_return_code(struct bpf_verifier_env *env)
 	struct tnum range = tnum_range(0, 1);
 
 	switch (env->prog->type) {
+	case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
+		if (env->prog->expected_attach_type == BPF_CGROUP_UDP4_RECVMSG ||
+		    env->prog->expected_attach_type == BPF_CGROUP_UDP6_RECVMSG)
+			range = tnum_range(1, 1);
 	case BPF_PROG_TYPE_CGROUP_SKB:
 	case BPF_PROG_TYPE_CGROUP_SOCK:
 	case BPF_PROG_TYPE_SOCK_OPS:
@@ -3643,16 +3644,17 @@ static int check_return_code(struct bpf_verifier_env *env)
 	}
 
 	if (!tnum_in(range, reg->var_off)) {
+		char tn_buf[48];
+
 		verbose("At program exit the register R0 ");
 		if (!tnum_is_unknown(reg->var_off)) {
-			char tn_buf[48];
-
 			tnum_strn(tn_buf, sizeof(tn_buf), reg->var_off);
 			verbose("has value %s", tn_buf);
 		} else {
 			verbose("has unknown scalar value");
 		}
-		verbose(" should have been 0 or 1\n");
+		tnum_strn(tn_buf, sizeof(tn_buf), range);
+		verbose(" should have been in %s\n", tn_buf);
 		return -EINVAL;
 	}
 	return 0;
@@ -5160,7 +5162,7 @@ static void free_states(struct bpf_verifier_env *env)
 
 int bpf_check(struct bpf_prog **prog, union bpf_attr *attr)
 {
-	struct bpf_verifer_log *log = &verifier_log;
+	struct bpf_verifier_log *log = &verifier_log;
 	struct bpf_verifier_env *env;
 	int ret = -EINVAL;
 
@@ -5197,9 +5199,6 @@ int bpf_check(struct bpf_prog **prog, union bpf_attr *attr)
 			goto err_unlock;
 
 		ret = -ENOMEM;
-		log->kbuf = vmalloc(log->len_total);
-		if (!log->kbuf)
-			goto err_unlock;
 	} else {
 		log->level = 0;
 	}
@@ -5252,14 +5251,10 @@ skip_full_check:
 		ret = fixup_bpf_calls(env);
 
 	if (log->level && bpf_verifier_log_full(log)) {
-		BUG_ON(log->len_used >= log->len_total);
-		/* verifier log exceeded user supplied buffer */
 		ret = -ENOSPC;
 	}
 
-	/* copy verifier log back to user space including trailing zero */
-	if (log->level && copy_to_user(log->ubuf, log->kbuf,
-				       log->len_used + 1) != 0) {
+	if (log->level && !log->ubuf) {
 		ret = -EFAULT;
 		goto err_release_maps;
 	}
@@ -5285,9 +5280,7 @@ skip_full_check:
 		convert_pseudo_ld_imm64(env);
 	}
 
-free_log_buf:
-	if (log->level)
-		vfree(log->kbuf);
+err_release_maps:
 	if (!env->prog->aux->used_maps)
 		/* if we didn't copy map pointers into bpf_prog_info, release
 		 * them now. Otherwise free_used_maps() will release them.
