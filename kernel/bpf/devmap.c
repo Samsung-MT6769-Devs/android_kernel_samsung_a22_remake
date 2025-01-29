@@ -513,19 +513,9 @@ static int dev_map_update_elem(struct bpf_map *map, void *key, void *value,
 	if (!ifindex) {
 		dev = NULL;
 	} else {
-		dev = kmalloc_node(sizeof(*dev), GFP_ATOMIC | __GFP_NOWARN,
-				   map->numa_node);
-		if (!dev)
-			return -ENOMEM;
-
-		dev->dev = dev_get_by_index(net, ifindex);
-		if (!dev->dev) {
-			kfree(dev);
-			return -EINVAL;
-		}
-
-		dev->bit = i;
-		dev->dtab = dtab;
+		dev = __dev_map_alloc_node(net, dtab, ifindex, i);
+		if (IS_ERR(dev))
+			return PTR_ERR(dev);
 	}
 
 	/* Use call_rcu() here to ensure rcu critical sections have completed
